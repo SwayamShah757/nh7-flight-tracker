@@ -66,6 +66,43 @@ export default async function handler(req, res) {
         Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || null;
     }
 
+    // If /track has no coordinates, try FlightNerve's documented /monitored
+    // live-board endpoint before falling back to the watchlist metadata.
+    let monitoredHttpStatus = null;
+    let monitoredFlightFound = null;
+    let monitoredPositionPresent = null;
+    if (!position) {
+      const monitoredResponse = await fetch("https://api.flightnerve.com/monitored/" + encodeURIComponent(apiKey), {
+        headers: { Accept: "application/json" }
+      });
+      monitoredHttpStatus = monitoredResponse.status;
+      if (monitoredResponse.ok) {
+        const monitoredData = await monitoredResponse.json();
+        const flights = Array.isArray(monitoredData?.flights) ? monitoredData.flights : [];
+        const monitoredFlight = flights.find(f =>
+          String(f?.flight || "").replace(/\\s/g, "").toUpperCase() === "NH7" &&
+          (!dateCompact || !f?.day || String(f.day) === dateCompact)
+        ) || flights.find(f => String(f?.flight || "").replace(/\\s/g, "").toUpperCase() === "NH7");
+        monitoredFlightFound = Boolean(monitoredFlight);
+        const p = monitoredFlight?.position;
+        monitoredPositionPresent = Boolean(p && p.latitude != null && p.longitude != null);
+        if (p && p.latitude != null && p.longitude != null &&
+            Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude)) &&
+            Number(p.latitude) >= -90 && Number(p.latitude) <= 90 &&
+            Number(p.longitude) >= -180 && Number(p.longitude) <= 180) {
+          position = {
+            latitude: p.latitude,
+            longitude: p.longitude,
+            altitude: p.altitude ?? null,
+            groundSpeed: p.groundSpeed ?? null,
+            source: p.source || null,
+            updatedAgo: p.updatedAgo || p.lastUpdated || null
+          };
+          trackingResponseType = "monitored-position";
+        }
+      }
+    }
+
     // FlightNerve documents the /watch endpoint for a user's tracked-flight list.
     // Check that documented endpoint if /track returns no position.
     let watchHttpStatus = null;
@@ -147,6 +184,9 @@ export default async function handler(req, res) {
       positionUpdatedAgo: position?.updatedAgo || null,
       trackingHttpStatus,
       trackingResponseType,
+      monitoredHttpStatus,
+      monitoredFlightFound,
+      monitoredPositionPresent,
       watchHttpStatus,
       watchTrackedCount,
       watchHasNH7,
@@ -159,7 +199,7 @@ export default async function handler(req, res) {
       watchPhase,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /watch HTTP ${watchHttpStatus}. No usable aircraft coordinates were returned.`
+        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}; /watch HTTP ${watchHttpStatus}. No usable aircraft coordinates were returned.`
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
