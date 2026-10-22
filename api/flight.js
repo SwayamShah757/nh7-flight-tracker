@@ -62,17 +62,19 @@ export default async function handler(req, res) {
     // FlightNerve's /track docs say only today's date can be airborne.
     // When a date is supplied to our frontend, use it for schedule lookup,
     // but omit date from live tracking so the provider resolves its active instance.
-    const trackQuery = new URLSearchParams({ num: "7", name: "NH" });
-    const positionResponse = await fetch("https://api.flightnerve.com/track/" + encodeURIComponent(apiKey) + "?" + trackQuery.toString(), {
-      headers: { Accept: "application/json" }
-    });
-    trackingHttpStatus = positionResponse.status;
-    if (positionResponse.ok) {
-      const positions = await positionResponse.json();
-      trackingResponseType = Array.isArray(positions) ? (positions.length ? "array-with-results" : "empty-array") : typeof positions;
-      const candidates = Array.isArray(positions) ? positions : [];
-      position = candidates.find(p => p && p.latitude != null && p.longitude != null &&
-        Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || null;
+    if (!scheduleError) {
+      const trackQuery = new URLSearchParams({ num: "7", name: "NH" });
+      const positionResponse = await fetch("https://api.flightnerve.com/track/" + encodeURIComponent(apiKey) + "?" + trackQuery.toString(), {
+        headers: { Accept: "application/json" }
+      });
+      trackingHttpStatus = positionResponse.status;
+      if (positionResponse.ok) {
+        const positions = await positionResponse.json();
+        trackingResponseType = Array.isArray(positions) ? (positions.length ? "array-with-results" : "empty-array") : typeof positions;
+        const candidates = Array.isArray(positions) ? positions : [];
+        position = candidates.find(p => p && p.latitude != null && p.longitude != null &&
+          Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || null;
+      }
     }
 
     // If /track has no coordinates, try FlightNerve's documented /monitored
@@ -176,12 +178,15 @@ export default async function handler(req, res) {
     // Accept only fresh, valid coordinates; never infer a live fix.
     let adsbHttpStatus = null;
     if (!position) {
-      try {
-        const adsbResponse = await fetch("https://opendata.adsb.fi/api/v2/callsign/ANA7", {
-          headers: { Accept: "application/json" }
-        });
-        adsbHttpStatus = adsbResponse.status;
-        if (adsbResponse.ok) {
+      // ANA7 is NH7's likely radio callsign; try the flight number too in case
+      // the feed indexes this aircraft under NH7. Stop as soon as a fresh fix is found.
+      for (const callsign of ["ANA7", "NH7"]) {
+        try {
+          const adsbResponse = await fetch("https://opendata.adsb.fi/api/v2/callsign/" + callsign, {
+            headers: { Accept: "application/json" }
+          });
+          adsbHttpStatus = adsbResponse.status;
+          if (!adsbResponse.ok) continue;
           const adsbData = await adsbResponse.json();
           const aircraftList = Array.isArray(adsbData?.ac) ? adsbData.ac : [];
           const aircraftFix = aircraftList.find(a =>
@@ -197,16 +202,17 @@ export default async function handler(req, res) {
               longitude: aircraftFix.lon,
               altitude: aircraftFix.alt_baro === "ground" ? null : (aircraftFix.alt_baro ?? aircraftFix.alt_geom ?? null),
               groundSpeed: aircraftFix.gs ?? null,
-              source: "adsb.lol ADS-B",
+              source: "adsb.fi ADS-B",
               updatedAgo: Number(aircraftFix.seen_pos) < 5
                 ? "just now"
                 : Math.round(Number(aircraftFix.seen_pos)) + " sec ago"
             };
             trackingResponseType = "adsb-live-position";
+            break;
           }
+        } catch (_) {
+          // Try the alternate callsign; keep schedule/status working if feed unavailable.
         }
-      } catch (_) {
-        // Keep schedule/status working if the secondary live feed is unavailable.
       }
     }
 
