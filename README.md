@@ -21,10 +21,13 @@ GitHub Pages hosts static HTML/CSS/JS only; it cannot run `api/flight.js` as a b
 6. If frontend and backend are on different domains, edit `tracker.html`: change `fetch('./api/flight?...')` to the full Vercel function URL, for example `https://YOUR-VERCEL-DOMAIN.vercel.app/api/flight?...`. The backend may also need CORS headers allowing your exact GitHub Pages origin; add them before using cross-origin fetch.
 7. Test with a flight/date for which your AeroAPI plan provides data. The API function is a starter integration: provider response fields can vary by flight, and may need adjustment against the live response and current AeroAPI docs.
 
-## API cost / limitations
+## The story behind NH7 Flight Watch
 
-AeroAPI is a metered commercial service; check current pricing and plan quotas before leaving automatic polling enabled. At one request per minute, a tab makes up to 60 calls per hour. For cost control, consider polling every 2–5 minutes or stopping polling after landing. Availability of historical and current positions depends on API plan and provider coverage.
+More than a flight home
+This website was made for the students and friends from Toyokawa, Japan, who took part in the Cupertino–Toyokawa Sister Cities exchange. During the exchange, we got to share our everyday lives, learn about each other’s cultures, and build friendships that reach across the Pacific.
 
-## Current status
+When it was time for the Toyokawa delegation to head home, I wanted to make something that would help us follow their journey from San Francisco to Tokyo—and give everyone one more way to show how much we’ll miss them. NH7 Flight Watch is my small way of turning a flight number into a reminder of the people, memories, and connections behind it.
+
+## That is what the exchange is about to me: not just visiting another country, but discovering how people from different places can become part of one another’s lives. The trip ends, but the friendship doesn’t. ❤️
 
 This is implementation-ready scaffolding, not a verified live connection. It will show "Backend is not configured yet" until the API key is set on the backend. No API key is included in these files.
