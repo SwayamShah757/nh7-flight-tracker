@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: "Backend is not configured yet: add FLIGHTNERVE_API_KEY in Vercel environment variables." });
 
   const date = String(req.query.date || "");
-  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
     return res.status(400).json({ error: "Date must be YYYY-MM-DD." });
   }
 
@@ -46,16 +46,21 @@ export default async function handler(req, res) {
     const status = typeof statusObject === "string" ? statusObject : statusObject?.status || "Status unavailable";
 
     let position = null;
-    // Try tracking even when the schedule status is delayed or not normalized.
-    const trackQuery = new URLSearchParams({ num: "7", name: "NH" });
+    let trackingHttpStatus = null;
+    let trackingResponseType = "unknown";
+    // Match the route used for the schedule lookup when requesting live position.
+    const trackQuery = new URLSearchParams({ num: "7", name: "NH", depap: "SFO", arrap: "NRT" });
     if (dateCompact) trackQuery.set("date", dateCompact);
     const positionResponse = await fetch("https://api.flightnerve.com/track/" + encodeURIComponent(apiKey) + "?" + trackQuery.toString(), {
       headers: { Accept: "application/json" }
     });
+    trackingHttpStatus = positionResponse.status;
     if (positionResponse.ok) {
       const positions = await positionResponse.json();
+      trackingResponseType = Array.isArray(positions) ? (positions.length ? "array-with-results" : "empty-array") : typeof positions;
       const candidates = Array.isArray(positions) ? positions : [];
-      position = candidates.find(p => p && Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || candidates[0] || null;
+      position = candidates.find(p => p && p.latitude != null && p.longitude != null &&
+        Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || null;
     }
 
     return res.status(200).json({
@@ -72,15 +77,17 @@ export default async function handler(req, res) {
       arrivalLocal: arrival.scheduledTime || null,
       estimatedArrivalLocal: arrival.estimatedTime || null,
       aircraft: aircraft.name || aircraft.code || null,
-      latitude: position && Number.isFinite(Number(position.latitude)) ? Number(position.latitude) : null,
-      longitude: position && Number.isFinite(Number(position.longitude)) ? Number(position.longitude) : null,
+      latitude: position ? Number(position.latitude) : null,
+      longitude: position ? Number(position.longitude) : null,
       altitudeFeet: position?.altitude != null ? Number(position.altitude) : null,
       groundspeedKnots: position?.groundSpeed != null ? Number(position.groundSpeed) : null,
       positionSource: position?.source || null,
       positionUpdatedAgo: position?.updatedAgo || null,
+      trackingHttpStatus,
+      trackingResponseType,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : "Flight schedule and status loaded, but FlightNerve did not return a usable aircraft position. Times are UTC unless labeled local."
+        : `Flight schedule/status loaded; tracking endpoint HTTP ${trackingHttpStatus}, response: ${trackingResponseType}. No usable aircraft coordinates were returned.`
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
