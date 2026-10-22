@@ -27,24 +27,33 @@ export default async function handler(req, res) {
     const statusResponse = await fetch(`https://api.flightnerve.com/airline/${encodeURIComponent(apiKey)}?${query.toString()}`, {
       headers: { Accept: "application/json" }
     });
-    if (!statusResponse.ok) {
+    let scheduleError = null;
+    let raw = [];
+    if (statusResponse.ok) {
+      raw = await statusResponse.json();
+    } else {
       const providerStatus = statusResponse.status;
-      return res.status(providerStatus === 401 || providerStatus === 403 ? 502 : providerStatus).json({
-        error: `FlightNerve returned HTTP ${providerStatus}. Check the API key, credits, and flight/date coverage.`
-      });
+      scheduleError = `FlightNerve schedule lookup returned HTTP ${providerStatus}; attempting live tracking fallback.`;
+      // A rate limit should not prevent the independent ADS-B source from working.
+      // Authentication errors remain fatal because the configured key may be invalid.
+      if (providerStatus === 401 || providerStatus === 403) {
+        return res.status(502).json({
+          error: `FlightNerve returned HTTP ${providerStatus}. Check the API key and account access.`
+        });
+      }
     }
 
-    const raw = await statusResponse.json();
     const leg = Array.isArray(raw) && Array.isArray(raw[0]) ? raw[0] : raw;
-    if (!Array.isArray(leg) || leg.length < 4) {
+    if (statusResponse.ok && (!Array.isArray(leg) || leg.length < 4)) {
       return res.status(502).json({ error: "FlightNerve returned an unexpected response format." });
     }
 
-    const departure = leg.find(item => item && item.departure)?.departure || {};
-    const arrival = leg.find(item => item && item.arrival)?.arrival || {};
-    const aircraft = leg.find(item => item && item.aircraft)?.aircraft || {};
-    const statusObject = leg.find(item => item && item.status)?.status;
-    const status = typeof statusObject === "string" ? statusObject : statusObject?.status || "Status unavailable";
+    const safeLeg = Array.isArray(leg) ? leg : [];
+    const departure = safeLeg.find(item => item && item.departure)?.departure || {};
+    const arrival = safeLeg.find(item => item && item.arrival)?.arrival || {};
+    const aircraft = safeLeg.find(item => item && item.aircraft)?.aircraft || {};
+    const statusObject = safeLeg.find(item => item && item.status)?.status;
+    const status = typeof statusObject === "string" ? statusObject : statusObject?.status || (scheduleError ? "Schedule unavailable · trying live tracking" : "Status unavailable");
 
     let position = null;
     let trackingHttpStatus = null;
@@ -238,7 +247,7 @@ export default async function handler(req, res) {
       watchPhase,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}; /watch HTTP ${watchHttpStatus}; ADS-B fallback HTTP ${adsbHttpStatus}. No usable live aircraft coordinates were returned.`
+        : `${scheduleError || "Flight schedule/status loaded."} /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}; /watch HTTP ${watchHttpStatus}; ADS-B fallback HTTP ${adsbHttpStatus}. No usable live aircraft coordinates were returned.`
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
