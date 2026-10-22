@@ -43,6 +43,7 @@ async function refresh(){
   altSpeedEl.textContent=alt+' / '+speed;
   updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
   messageEl.textContent=data.message||'Refreshes automatically every 60 seconds while this page is open. Position availability depends on provider coverage and flight status.';
+  messageEl.classList.remove('error');
  }catch(e){statusEl.textContent='Data unavailable';updatedEl.textContent='Checked '+new Date().toLocaleTimeString();messageEl.textContent=e.message+'. Check that FLIGHTNERVE_API_KEY is configured in Vercel and the latest deployment is Ready. External tracking links above remain available.';messageEl.classList.add('error');}
 }
 document.querySelector('#refresh').addEventListener('click',refresh);
