@@ -69,6 +69,11 @@ export default async function handler(req, res) {
     // FlightNerve documents the /watch endpoint for a user's tracked-flight list.
     // Check that documented endpoint if /track returns no position.
     let watchHttpStatus = null;
+    let watchTrackedCount = null;
+    let watchHasNH7 = null;
+    let watchFlightKeys = [];
+    let watchLiveKeys = [];
+    let watchPositionKeys = [];
     if (!position) {
       const watchResponse = await fetch("https://api.flightnerve.com/watch/" + encodeURIComponent(apiKey), {
         headers: { Accept: "application/json" }
@@ -77,12 +82,21 @@ export default async function handler(req, res) {
       if (watchResponse.ok) {
         const watchData = await watchResponse.json();
         const tracked = Array.isArray(watchData?.tracked) ? watchData.tracked : [];
+        watchTrackedCount = tracked.length;
         const watchedFlight = tracked.find(f =>
           String(f?.flight || "").replace(/\s/g, "").toUpperCase() === "NH7" &&
           (!dateCompact || !f?.day || String(f.day) === dateCompact)
         ) || tracked.find(f => String(f?.flight || "").replace(/\s/g, "").toUpperCase() === "NH7");
+        watchHasNH7 = Boolean(watchedFlight);
+        if (watchedFlight && typeof watchedFlight === "object") {
+          watchFlightKeys = Object.keys(watchedFlight).slice(0, 30);
+          if (watchedFlight.live && typeof watchedFlight.live === "object") {
+            watchLiveKeys = Object.keys(watchedFlight.live).slice(0, 30);
+          }
+        }
         // Some response variants include a full position; others only include progress.
         const p = watchedFlight?.position || watchedFlight?.live?.position;
+        if (p && typeof p === "object") watchPositionKeys = Object.keys(p).slice(0, 30);
         if (p && p.latitude != null && p.longitude != null &&
             Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) {
           position = {
@@ -121,6 +135,11 @@ export default async function handler(req, res) {
       trackingHttpStatus,
       trackingResponseType,
       watchHttpStatus,
+      watchTrackedCount,
+      watchHasNH7,
+      watchFlightKeys,
+      watchLiveKeys,
+      watchPositionKeys,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
         : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /watch HTTP ${watchHttpStatus}. No usable aircraft coordinates were returned.`
