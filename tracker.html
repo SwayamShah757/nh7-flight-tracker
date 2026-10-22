@@ -28,11 +28,12 @@ if(window.L){
 // Estimated route: first explicitly supplied oceanic waypoint through the supplied coordinates,
 // then approximate terminal waypoints to Narita. This is a simulation, not live aircraft telemetry.
 const route=[
- [40,-140],[41,-150],[42,-160],[40,-170],[37,-180],
+ [41.64787,-155.38292], // user-supplied FlightRadar24 position snapshot
+ [42,-160],[40,-170],[37,-180],
  [35,-170],[34,-160],[35,-150],[35.2,-146],[35.4,-143],
  [35.6,-141.5],[35.772,140.3929]
 ];
-const R=3440.065, SPEED_KT=443, ALTITUDE_FT=32000;
+const R=3440.065, SPEED_KT=448, INITIAL_TRACK_DEG=277, ALTITUDE_FT=32000;
 const TERMINAL_NM=12;
 const radians=d=>d*Math.PI/180, degrees=r=>r*180/Math.PI;
 function distanceNm(a,b){
@@ -82,7 +83,7 @@ function updateEstimate(){
  positionEl.textContent=p[0].toFixed(2)+', '+p[1].toFixed(2)+' · estimated';
  altSpeedEl.textContent='FL 320 / 443 kt (assumed)';
  updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
- messageEl.textContent='Estimated route progress only — not live aircraft data. Assumes 443 kt ground speed along the listed route legs; 279° is the supplied track reference and is not treated as a constant heading through every turn. The simulation begins at 40°N, 140°W when first opened on this browser. Route/waypoint coordinates after the published oceanic points are approximate.';
+ messageEl.textContent='Estimated route progress only — not live aircraft data. Assumes 448 kt ground speed along the listed route legs; 277° is the supplied initial track reference and is not treated as a constant heading through every turn. The simulation starts at the supplied snapshot 41.64787°N, 155.38292°W. Initial snapshot track was 277°; the route model follows the supplied waypoints at an assumed constant 448 kt. Terminal waypoints after the supplied oceanic points are approximate.';
  if(map){
   const path=route.map(pt=>[pt[0],pt[1]]);
   if(!routeLine)routeLine=L.polyline(path,{color:'#64b5f6',weight:3,dashArray:'7 7'}).addTo(map);
