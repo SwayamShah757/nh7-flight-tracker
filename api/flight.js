@@ -66,23 +66,23 @@ export default async function handler(req, res) {
         Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || null;
     }
 
-    // If /track is empty, try the monitored-flight board. The user has added NH7
-    // to their FlightNerve watchlist, and /monitored includes live position data
-    // for watched flights when available.
-    let monitoredHttpStatus = null;
+    // FlightNerve documents the /watch endpoint for a user's tracked-flight list.
+    // Check that documented endpoint if /track returns no position.
+    let watchHttpStatus = null;
     if (!position) {
-      const monitoredResponse = await fetch("https://api.flightnerve.com/monitored/" + encodeURIComponent(apiKey), {
+      const watchResponse = await fetch("https://api.flightnerve.com/watch/" + encodeURIComponent(apiKey), {
         headers: { Accept: "application/json" }
       });
-      monitoredHttpStatus = monitoredResponse.status;
-      if (monitoredResponse.ok) {
-        const monitoredData = await monitoredResponse.json();
-        const flights = Array.isArray(monitoredData?.flights) ? monitoredData.flights : [];
-        const watchedFlight = flights.find(f =>
-          String(f?.flight || "").replace(/\\s/g, "").toUpperCase() === "NH7" &&
+      watchHttpStatus = watchResponse.status;
+      if (watchResponse.ok) {
+        const watchData = await watchResponse.json();
+        const tracked = Array.isArray(watchData?.tracked) ? watchData.tracked : [];
+        const watchedFlight = tracked.find(f =>
+          String(f?.flight || "").replace(/\s/g, "").toUpperCase() === "NH7" &&
           (!dateCompact || !f?.day || String(f.day) === dateCompact)
-        ) || flights.find(f => String(f?.flight || "").replace(/\\s/g, "").toUpperCase() === "NH7");
-        const p = watchedFlight?.position;
+        ) || tracked.find(f => String(f?.flight || "").replace(/\s/g, "").toUpperCase() === "NH7");
+        // Some response variants include a full position; others only include progress.
+        const p = watchedFlight?.position || watchedFlight?.live?.position;
         if (p && p.latitude != null && p.longitude != null &&
             Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) {
           position = {
@@ -90,10 +90,10 @@ export default async function handler(req, res) {
             longitude: p.longitude,
             altitude: p.altitude,
             groundSpeed: p.groundSpeed,
-            source: p.source,
+            source: p.source || watchedFlight?.fn_source,
             updatedAgo: p.updatedAgo || p.lastUpdated || null
           };
-          trackingResponseType = "monitored-position";
+          trackingResponseType = "watch-position";
         }
       }
     }
@@ -120,10 +120,10 @@ export default async function handler(req, res) {
       positionUpdatedAgo: position?.updatedAgo || null,
       trackingHttpStatus,
       trackingResponseType,
-      monitoredHttpStatus,
+      watchHttpStatus,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}. No usable aircraft coordinates were returned.`
+        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /watch HTTP ${watchHttpStatus}. No usable aircraft coordinates were returned.`
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
