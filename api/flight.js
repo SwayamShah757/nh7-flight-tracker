@@ -46,17 +46,16 @@ export default async function handler(req, res) {
     const status = typeof statusObject === "string" ? statusObject : statusObject?.status || "Status unavailable";
 
     let position = null;
-    // Only query live position when the selected flight is currently airborne.
-    if (status.toLowerCase() === "in air") {
-      const trackQuery = new URLSearchParams({ num: "7", name: "NH" });
-      if (dateCompact) trackQuery.set("date", dateCompact);
-      const positionResponse = await fetch(`https://api.flightnerve.com/track/${encodeURIComponent(apiKey)}?${trackQuery.toString()}`, {
-        headers: { Accept: "application/json" }
-      });
-      if (positionResponse.ok) {
-        const positions = await positionResponse.json();
-        position = Array.isArray(positions) ? positions[0] || null : null;
-      }
+    // Try tracking even when the schedule status is delayed or not normalized.
+    const trackQuery = new URLSearchParams({ num: "7", name: "NH" });
+    if (dateCompact) trackQuery.set("date", dateCompact);
+    const positionResponse = await fetch("https://api.flightnerve.com/track/" + encodeURIComponent(apiKey) + "?" + trackQuery.toString(), {
+      headers: { Accept: "application/json" }
+    });
+    if (positionResponse.ok) {
+      const positions = await positionResponse.json();
+      const candidates = Array.isArray(positions) ? positions : [];
+      position = candidates.find(p => p && Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || candidates[0] || null;
     }
 
     return res.status(200).json({
@@ -81,9 +80,7 @@ export default async function handler(req, res) {
       positionUpdatedAgo: position?.updatedAgo || null,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : status.toLowerCase() === "in air"
-          ? "Flight status is available, but no aircraft position was returned."
-          : "Flight schedule and status loaded. A live position appears only while NH7 is airborne. Times are UTC unless labeled local."
+        : "Flight schedule and status loaded, but FlightNerve did not return a usable aircraft position. Times are UTC unless labeled local."
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
