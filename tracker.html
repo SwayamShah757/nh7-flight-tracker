@@ -102,8 +102,10 @@ function updateEstimate(){
  updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
  messageEl.textContent='Estimated route progress only — not live aircraft data. Assumes 448 kt ground speed along the listed route legs; 277° is the supplied initial track reference and is not treated as a constant heading through every turn. The simulation starts at the latest supplied snapshot 41.6708°N, 155.63348°W. Initial snapshot track was 277°; the route model follows the supplied waypoints at an assumed constant 448 kt. Terminal waypoints after the supplied oceanic points are approximate.';
  if(map){
-  const path=route.map(pt=>[pt[0],pt[1]]);
-  if(!routeLine)routeLine=L.polyline(path,{color:'#64b5f6',weight:3,dashArray:'7 7'}).addTo(map);
+  // Draw the blue line from the moving aircraft dot directly to Narita (NRT).
+  const destination=[35.772,140.3929];
+  if(!routeLine)routeLine=L.polyline([p,destination],{color:'#64b5f6',weight:3,dashArray:'7 7',noClip:true}).addTo(map);
+  else routeLine.setLatLngs([p,destination]);
   if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7 · route-based estimate, not live');
   else marker.setLatLng(p);
   map.setView(p,4);
