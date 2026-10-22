@@ -34,6 +34,7 @@ async function refresh(){
   statusEl.textContent=data.status||'Flight data received';
   departureEl.textContent=data.estimatedDepartureLocal||data.departureLocal||fmtDate(data.estimatedDeparture||data.scheduledDeparture);
   etaEl.textContent=data.estimatedArrivalLocal||data.arrivalLocal||fmtDate(data.estimatedArrival||data.scheduledArrival);
+  let positionMessage=null;
   if(data.latitude!=null&&data.longitude!=null){
     positionEl.textContent=Number(data.latitude).toFixed(2)+', '+Number(data.longitude).toFixed(2)+' · live';
     if(map){const p=[Number(data.latitude),Number(data.longitude)];if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7 · provider position');else marker.setLatLng(p).setPopupContent('ANA NH7 · provider position');map.setView(p,5);}
@@ -49,7 +50,7 @@ async function refresh(){
       const p=[start[0]+(end[0]-start[0])*t,lon];
       positionEl.textContent=p[0].toFixed(2)+', '+p[1].toFixed(2)+' · schedule estimate';
       if(map){if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7 · schedule-based estimate, not live tracking');else marker.setLatLng(p).setPopupContent('ANA NH7 · schedule-based estimate, not live tracking');map.setView(p,4);}
-      messageEl.textContent='No live coordinates were supplied by the tracking provider. The map marker is an approximate position interpolated between SFO and NRT using scheduled times; it is not live aircraft data.';
+      positionMessage='No live coordinates were supplied by the tracking provider. The map marker is an approximate position interpolated between SFO and NRT using scheduled times; it is not live aircraft data.';
     } else {
       positionEl.textContent='No current position';
       if(marker&&map){map.removeLayer(marker);marker=null;}
@@ -59,7 +60,7 @@ async function refresh(){
   const speed=data.groundspeedKnots!=null?Math.round(data.groundspeedKnots)+' kt':'—';
   altSpeedEl.textContent=alt+' / '+speed;
   updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
-  messageEl.textContent=data.message||'Refreshes automatically every 60 seconds while this page is open. Position availability depends on provider coverage and flight status.';
+  messageEl.textContent=positionMessage ? positionMessage+' Diagnostic: '+(data.message||'No provider diagnostic was supplied.') : (data.message||'Refreshes automatically every 60 seconds while this page is open. Position availability depends on provider coverage and flight status.');
   messageEl.classList.remove('error');
  }catch(e){statusEl.textContent='Data unavailable';updatedEl.textContent='Checked '+new Date().toLocaleTimeString();messageEl.textContent=e.message+'. Check that FLIGHTNERVE_API_KEY is configured in Vercel and the latest deployment is Ready. External tracking links above remain available.';messageEl.classList.add('error');}
 }
