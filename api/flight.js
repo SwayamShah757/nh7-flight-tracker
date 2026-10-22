@@ -66,6 +66,38 @@ export default async function handler(req, res) {
         Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) || null;
     }
 
+    // If /track is empty, try the monitored-flight board. The user has added NH7
+    // to their FlightNerve watchlist, and /monitored includes live position data
+    // for watched flights when available.
+    let monitoredHttpStatus = null;
+    if (!position) {
+      const monitoredResponse = await fetch("https://api.flightnerve.com/monitored/" + encodeURIComponent(apiKey), {
+        headers: { Accept: "application/json" }
+      });
+      monitoredHttpStatus = monitoredResponse.status;
+      if (monitoredResponse.ok) {
+        const monitoredData = await monitoredResponse.json();
+        const flights = Array.isArray(monitoredData?.flights) ? monitoredData.flights : [];
+        const watchedFlight = flights.find(f =>
+          String(f?.flight || "").replace(/\\s/g, "").toUpperCase() === "NH7" &&
+          (!dateCompact || !f?.day || String(f.day) === dateCompact)
+        ) || flights.find(f => String(f?.flight || "").replace(/\\s/g, "").toUpperCase() === "NH7");
+        const p = watchedFlight?.position;
+        if (p && p.latitude != null && p.longitude != null &&
+            Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) {
+          position = {
+            latitude: p.latitude,
+            longitude: p.longitude,
+            altitude: p.altitude,
+            groundSpeed: p.groundSpeed,
+            source: p.source,
+            updatedAgo: p.updatedAgo || p.lastUpdated || null
+          };
+          trackingResponseType = "monitored-position";
+        }
+      }
+    }
+
     return res.status(200).json({
       flight: "NH7",
       status,
@@ -88,9 +120,10 @@ export default async function handler(req, res) {
       positionUpdatedAgo: position?.updatedAgo || null,
       trackingHttpStatus,
       trackingResponseType,
+      monitoredHttpStatus,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : `Flight schedule/status loaded; tracking endpoint HTTP ${trackingHttpStatus}, response: ${trackingResponseType}. No usable aircraft coordinates were returned.`
+        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}. No usable aircraft coordinates were returned.`
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
