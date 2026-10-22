@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/flight.js": {
+      "maxDuration": 10
+    }
+  }
+}

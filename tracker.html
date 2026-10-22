@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NH7 Live Tracker · SFO → NRT</title><link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+</head><body><main>
+<a class="back" href="index.html">← Home</a><p class="eyebrow">All Nippon Airways · Flight watch</p><h1>NH7 Live Tracker</h1><p class="lead">San Francisco (SFO) → Tokyo Narita (NRT)</p>
+<section class="panel">
+<div class="statusline"><span class="pill" id="status">Connecting to flight data…</span><span class="pill" id="updated">Not updated yet</span></div>
+<div class="grid">
+<div class="stat"><div class="label">Estimated arrival</div><div class="value" id="eta">—</div></div>
+<div class="stat"><div class="label">Aircraft position</div><div class="value" id="position">Waiting for data</div></div>
+<div class="stat"><div class="label">Altitude / speed</div><div class="value" id="altSpeed">—</div></div>
+</div>
+<label for="flightDate" class="label">Departure date (SFO local date)</label><input id="flightDate" type="date" style="padding:10px;background:#0b1728;color:var(--text);border:1px solid var(--line);border-radius:10px;font:inherit">
+<div class="actions"><button class="primary" id="refresh">Refresh now</button><a href="https://www.flightaware.com/live/flight/ANA7" target="_blank" rel="noopener">Open FlightAware ↗</a><a href="https://www.flightradar24.com/data/flights/nh7" target="_blank" rel="noopener">Open Flightradar24 ↗</a></div>
+<div id="map"><div class="map-placeholder">The map will show the aircraft when the API returns a valid position.</div></div>
+<p class="hint" id="message">Live data requires an API key configured on the backend. This page never stores the key in browser code.</p>
+</section><p class="foot">Made to keep an eye on NH7 — even from far away. ✦</p></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const dateInput=document.querySelector('#flightDate'), statusEl=document.querySelector('#status'), updatedEl=document.querySelector('#updated'), etaEl=document.querySelector('#eta'), positionEl=document.querySelector('#position'), altSpeedEl=document.querySelector('#altSpeed'), messageEl=document.querySelector('#message'), mapEl=document.querySelector('#map');
+const qs=new URLSearchParams(location.search), now=new Date(), today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+dateInput.value=qs.get('date')||today;
+let map=null, marker=null, trackLine=null;
+if(window.L){map=L.map('map').setView([42, -160],3);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:8,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);}
+function fmtDate(v){if(!v)return '—';const d=new Date(v);return isNaN(d)?String(v):d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'})+' UTC';}
+async function refresh(){
+ const date=dateInput.value; if(!date)return;
+ statusEl.textContent='Updating…';messageEl.textContent='Requesting the latest available data…';
+ try{
+  const r=await fetch('./api/flight?flight=NH7&date='+encodeURIComponent(date),{cache:'no-store'});
+  const data=await r.json();if(!r.ok)throw new Error(data.error||'API request failed ('+r.status+')');
+  statusEl.textContent=data.status||'Flight data received';
+  etaEl.textContent=fmtDate(data.estimatedArrival||data.scheduledArrival);
+  if(data.latitude!=null&&data.longitude!=null){
+    positionEl.textContent=Number(data.latitude).toFixed(2)+', '+Number(data.longitude).toFixed(2);
+    if(map){const p=[Number(data.latitude),Number(data.longitude)];if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7');else marker.setLatLng(p);map.setView(p,5);}
+  } else positionEl.textContent='No current position';
+  const alt=data.altitudeFeet!=null?Math.round(data.altitudeFeet).toLocaleString()+' ft':'—';
+  const speed=data.groundspeedKnots!=null?Math.round(data.groundspeedKnots)+' kt':'—';
+  altSpeedEl.textContent=alt+' / '+speed;
+  updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
+  messageEl.textContent=data.message||'Refreshes automatically every 60 seconds while this page is open. Position availability depends on provider coverage and flight status.';
+ }catch(e){statusEl.textContent='Data unavailable';updatedEl.textContent='Checked '+new Date().toLocaleTimeString();messageEl.textContent=e.message+'. Configure AEROAPI_KEY on the backend and deploy the API function. External tracking links above remain available.';messageEl.classList.add('error');}
+}
+document.querySelector('#refresh').addEventListener('click',refresh);
+dateInput.addEventListener('change',()=>{history.replaceState(null,'','?date='+encodeURIComponent(dateInput.value));refresh()});
+refresh();setInterval(refresh,60000);
+</script></body></html>
