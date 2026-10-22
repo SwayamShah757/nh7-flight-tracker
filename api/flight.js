@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: "Backend is not configured yet: add FLIGHTNERVE_API_KEY in Vercel environment variables." });
 
   const date = String(req.query.date || "");
-  if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: "Date must be YYYY-MM-DD." });
   }
 
