@@ -94,18 +94,23 @@ export default async function handler(req, res) {
             watchLiveKeys = Object.keys(watchedFlight.live).slice(0, 30);
           }
         }
-        // Some response variants include a full position; others only include progress.
-        const p = watchedFlight?.position || watchedFlight?.live?.position;
+        // /watch's documented live object exposes coordinates as live.lat/live.lon,
+        // not necessarily as a nested live.position object.
+        const p = watchedFlight?.position || watchedFlight?.live?.position || watchedFlight?.live;
         if (p && typeof p === "object") watchPositionKeys = Object.keys(p).slice(0, 30);
-        if (p && p.latitude != null && p.longitude != null &&
-            Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))) {
+        const lat = p?.latitude ?? p?.lat;
+        const lon = p?.longitude ?? p?.lon;
+        if (lat != null && lon != null &&
+            Number.isFinite(Number(lat)) && Number.isFinite(Number(lon)) &&
+            Number(lat) >= -90 && Number(lat) <= 90 &&
+            Number(lon) >= -180 && Number(lon) <= 180) {
           position = {
-            latitude: p.latitude,
-            longitude: p.longitude,
-            altitude: p.altitude,
-            groundSpeed: p.groundSpeed,
-            source: p.source || watchedFlight?.fn_source,
-            updatedAgo: p.updatedAgo || p.lastUpdated || null
+            latitude: lat,
+            longitude: lon,
+            altitude: p.altitude ?? p.alt_ft,
+            groundSpeed: p.groundSpeed ?? p.gs_kt,
+            source: p.source || p.pos_source || watchedFlight?.fn_source,
+            updatedAgo: p.updatedAgo || p.lastUpdated || p.last_seen || null
           };
           trackingResponseType = "watch-position";
         }
