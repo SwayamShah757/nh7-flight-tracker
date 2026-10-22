@@ -6,56 +6,64 @@
 <title>NH7 Flight Status · SFO → NRT</title>
 <link rel="stylesheet" href="style.css">
 <style>
-.flight-card{margin-top:24px;background:#111e31ed;border:1px solid var(--line);border-radius:24px;padding:clamp(20px,5vw,34px);box-shadow:0 18px 55px #0004}
-.flight-heading{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
-.airline{color:var(--muted);margin:0}
-.flight-number{font-size:1.15rem;font-weight:800;color:var(--accent)}
-.airports{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;margin:30px 0}
+.status-card{margin-top:24px;background:#111e31ed;border:1px solid var(--line);border-radius:24px;padding:clamp(20px,5vw,34px);box-shadow:0 18px 55px #0004}
+.flight-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.airline{margin:0;color:var(--muted)}
+.flight-number{font-size:1.15rem;font-weight:800;color:var(--accent);margin-top:5px}
+.route{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;margin:30px 0}
 .airport-code{font-size:clamp(2.5rem,8vw,4rem);font-weight:850;letter-spacing:-.06em;line-height:1}
 .airport-name{color:var(--muted);font-size:.9rem;margin-top:8px}
 .airport-right{text-align:right}
 .flight-arrow{font-size:1.6rem;color:var(--accent)}
-.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:22px}
+.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .info{background:#0b1728;border:1px solid var(--line);border-radius:14px;padding:16px}
 .info .label{font-size:.8rem;color:var(--muted);margin-bottom:9px}
-.info .value{font-size:1.25rem;font-weight:800}
+.info .value{font-size:1.15rem;font-weight:800}
 .info .sub{font-size:.82rem;color:var(--muted);margin-top:6px}
 .note{margin-top:18px;color:var(--muted);font-size:.88rem;line-height:1.6}
-@media(max-width:560px){.info-grid{grid-template-columns:1fr}.airports{gap:9px}}
+@media(max-width:560px){.info-grid{grid-template-columns:1fr}.route{gap:9px}}
 </style>
 </head>
 <body>
 <main>
 <a class="back" href="index.html">← Home</a>
 <p class="eyebrow">All Nippon Airways · Flight status</p>
-<h1>NH7 Flight Tracker</h1>
-<p class="lead">A simple schedule and airport-gate overview for San Francisco → Tokyo Narita.</p>
-<section class="flight-card" aria-label="NH7 flight information">
+<h1>NH7 Status</h1>
+<p class="lead">A simple status board for ANA flight NH7 from San Francisco to Tokyo Narita.</p>
+<section class="status-card" aria-label="NH7 flight status">
 <div class="flight-heading">
 <div><p class="airline">All Nippon Airways (ANA)</p><div class="flight-number">NH7 · ANA7</div></div>
-<span class="pill">Scheduled · Oct 22, 2026</span>
+<span class="pill" id="status-pill">Status needs verification</span>
 </div>
-<div class="airports">
+<div class="route">
 <div><div class="airport-code">SFO</div><div class="airport-name">San Francisco</div></div>
 <div class="flight-arrow" aria-hidden="true">→</div>
 <div class="airport-right"><div class="airport-code">NRT</div><div class="airport-name">Tokyo Narita</div></div>
 </div>
 <div class="info-grid">
-<div class="info"><div class="label">Scheduled departure</div><div class="value">7:15 PM</div><div class="sub">Oct 22 · San Francisco time (PDT)</div></div>
-<div class="info"><div class="label">Scheduled arrival</div><div class="value">6:25 AM</div><div class="sub">Oct 23 · Tokyo time (JST)</div></div>
-<div class="info"><div class="label">Departure gate</div><div class="value">Not published</div><div class="sub">Check SFO airport screens or ANA</div></div>
-<div class="info"><div class="label">Arrival gate</div><div class="value">Not published</div><div class="sub">Check NRT airport information</div></div>
-<div class="info"><div class="label">Departure terminal</div><div class="value">International Terminal</div><div class="sub">SFO · scheduled information</div></div>
-<div class="info"><div class="label">Arrival terminal</div><div class="value">Terminal 1</div><div class="sub">NRT · scheduled information</div></div>
+<div class="info"><div class="label">Departure time</div><div class="value" id="departure">Check live status</div><div class="sub">San Francisco local time</div></div>
+<div class="info"><div class="label">Arrival time</div><div class="value" id="arrival">Check live status</div><div class="sub">Tokyo local time</div></div>
+<div class="info"><div class="label">Departure gate</div><div class="value" id="departure-gate">Not confirmed</div><div class="sub">May be assigned close to departure</div></div>
+<div class="info"><div class="label">Arrival gate</div><div class="value" id="arrival-gate">Not confirmed</div><div class="sub">Check airport information</div></div>
+<div class="info"><div class="label">Departure terminal</div><div class="value">SFO International</div><div class="sub">Confirm with airline / airport</div></div>
+<div class="info"><div class="label">Arrival terminal</div><div class="value">NRT Terminal 1</div><div class="sub">Confirm with airline / airport</div></div>
 </div>
+<p class="note" id="last-checked">This page does not yet have a verified live schedule or gate feed connected.</p>
 <div class="actions">
+<button class="primary" id="refresh">Refresh status</button>
 <a href="https://www.google.com/search?q=NH7+flight+status" target="_blank" rel="noopener">Google flight status ↗</a>
 <a href="https://www.flightaware.com/live/flight/ANA7" target="_blank" rel="noopener">FlightAware ↗</a>
 <a href="https://www.flightradar24.com/data/flights/nh7" target="_blank" rel="noopener">Flightradar24 ↗</a>
 </div>
-<p class="note">Schedule shown for October 22, 2026, based on publicly listed flight information. Gate assignments and operational times can change; gates were not available in the source data when this page was updated. This page does not claim live gate data.</p>
 </section>
 <p class="foot">NH7 · SFO → NRT ✦</p>
 </main>
+<script>
+const checked=document.querySelector('#last-checked');
+document.querySelector('#refresh').addEventListener('click',()=>{
+  checked.textContent='Refresh requested at '+new Date().toLocaleString()+'. For current departure, arrival, and gate details, open Google flight status or one of the live tracking links above.';
+  window.open('https://www.google.com/search?q=NH7+flight+status','_blank','noopener');
+});
+</script>
 </body>
 </html>
