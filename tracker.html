@@ -22,6 +22,16 @@
 .info .sub{font-size:.82rem;color:var(--muted);margin-top:6px}
 .note{margin-top:18px;color:var(--muted);font-size:.88rem;line-height:1.6}
 @media(max-width:560px){.info-grid{grid-template-columns:1fr}.route{gap:9px}}
+
+/* Hidden farewell surprise */
+.farewell{margin:100px auto 30px;max-width:680px;padding:34px 22px;text-align:center;border:1px solid #f472b655;border-radius:26px;background:radial-gradient(ellipse at top,#f472b622,transparent 70%),#111e31cc;box-shadow:0 18px 55px #0003;position:relative;overflow:hidden}
+.farewell .tiny{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:#f9a8d4}
+.farewell h2{margin:12px 0;font-size:clamp(1.8rem,6vw,3rem);line-height:1.12;color:#fff}
+.farewell .heart{display:inline-block;color:#fb7185;animation:heart-beat 1.5s ease-in-out infinite}
+.farewell p{max-width:480px;margin:12px auto 0;color:var(--muted);line-height:1.7}
+.farewell .sparkle{position:absolute;color:#f9a8d4;opacity:.8}
+@keyframes heart-beat{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@media(prefers-reduced-motion:reduce){.farewell .heart{animation:none}}
 </style>
 </head>
 <body>
@@ -57,6 +67,15 @@
 </div>
 </section>
 <p class="foot">NH7 · SFO → NRT ✦</p>
+
+<section class="farewell" aria-label="A little farewell message">
+<span class="sparkle" style="top:18px;left:22px" aria-hidden="true">✦</span>
+<span class="sparkle" style="top:34px;right:28px" aria-hidden="true">✧</span>
+<div class="tiny">A little message, just for you</div>
+<h2>We will MISS YOU <span class="heart">❤️</span>!!!!</h2>
+<p>Until we meet again, take a little piece of our hearts with you. Safe travels and see you soon! ✈️</p>
+</section>
+
 </main>
 <script>
 const checked=document.querySelector('#last-checked');
