@@ -14,15 +14,16 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: "Backend is not configured yet: add FLIGHTNERVE_API_KEY in Vercel environment variables." });
 
   const date = String(req.query.date || "");
-  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  if (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) {
     return res.status(400).json({ error: "Date must be YYYY-MM-DD." });
   }
 
   const dateCompact = date ? date.replace(/-/g, "") : "";
-  const query = new URLSearchParams({ num: "7", name: "NH", depap: "SFO", arrap: "NRT" });
-  if (dateCompact) query.set("date", dateCompact);
 
   try {
+    const query = new URLSearchParams({ num: "7", name: "NH", depap: "SFO", arrap: "NRT" });
+    if (dateCompact) query.set("date", dateCompact);
+
     const statusResponse = await fetch(`https://api.flightnerve.com/airline/${encodeURIComponent(apiKey)}?${query.toString()}`, {
       headers: { Accept: "application/json" }
     });
@@ -48,9 +49,11 @@ export default async function handler(req, res) {
     let position = null;
     let trackingHttpStatus = null;
     let trackingResponseType = "unknown";
-    // Match the route used for the schedule lookup when requesting live position.
+
+    // FlightNerve's /track docs say only today's date can be airborne.
+    // When a date is supplied to our frontend, use it for schedule lookup,
+    // but omit date from live tracking so the provider resolves its active instance.
     const trackQuery = new URLSearchParams({ num: "7", name: "NH" });
-    if (dateCompact) trackQuery.set("date", dateCompact);
     const positionResponse = await fetch("https://api.flightnerve.com/track/" + encodeURIComponent(apiKey) + "?" + trackQuery.toString(), {
       headers: { Accept: "application/json" }
     });
