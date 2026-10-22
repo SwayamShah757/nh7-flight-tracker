@@ -1,4 +1,4 @@
-# NH7 Flight Watch — GitHub Pages frontend + live API backend
+# NH7 Flight Watch — GitHub Pages frontend
 
 This version includes:
 - `index.html`: home page
