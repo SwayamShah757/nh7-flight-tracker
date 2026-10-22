@@ -162,6 +162,44 @@ export default async function handler(req, res) {
       }
     }
 
+    // Last live-data fallback: query the public ADS-B feed by ANA's likely
+    // radio callsign. Accept only fresh, valid coordinates; never infer a live fix.
+    let adsbHttpStatus = null;
+    if (!position) {
+      try {
+        const adsbResponse = await fetch("https://api.adsb.lol/v2/callsign/ANA7", {
+          headers: { Accept: "application/json" }
+        });
+        adsbHttpStatus = adsbResponse.status;
+        if (adsbResponse.ok) {
+          const adsbData = await adsbResponse.json();
+          const aircraftList = Array.isArray(adsbData?.ac) ? adsbData.ac : [];
+          const aircraftFix = aircraftList.find(a =>
+            a && a.lat != null && a.lon != null &&
+            Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lon)) &&
+            Number(a.lat) >= -90 && Number(a.lat) <= 90 &&
+            Number(a.lon) >= -180 && Number(a.lon) <= 180 &&
+            Number.isFinite(Number(a.seen_pos)) && Number(a.seen_pos) <= 120
+          );
+          if (aircraftFix) {
+            position = {
+              latitude: aircraftFix.lat,
+              longitude: aircraftFix.lon,
+              altitude: aircraftFix.alt_baro === "ground" ? null : (aircraftFix.alt_baro ?? aircraftFix.alt_geom ?? null),
+              groundSpeed: aircraftFix.gs ?? null,
+              source: "adsb.lol ADS-B",
+              updatedAgo: Number(aircraftFix.seen_pos) < 5
+                ? "just now"
+                : Math.round(Number(aircraftFix.seen_pos)) + " sec ago"
+            };
+            trackingResponseType = "adsb-live-position";
+          }
+        }
+      } catch (_) {
+        // Keep schedule/status working if the secondary live feed is unavailable.
+      }
+    }
+
     return res.status(200).json({
       flight: "NH7",
       status,
@@ -184,6 +222,7 @@ export default async function handler(req, res) {
       positionUpdatedAgo: position?.updatedAgo || null,
       trackingHttpStatus,
       trackingResponseType,
+      adsbHttpStatus,
       monitoredHttpStatus,
       monitoredFlightFound,
       monitoredPositionPresent,
@@ -199,7 +238,7 @@ export default async function handler(req, res) {
       watchPhase,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
-        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}; /watch HTTP ${watchHttpStatus}. No usable aircraft coordinates were returned.`
+        : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /monitored HTTP ${monitoredHttpStatus}; /watch HTTP ${watchHttpStatus}; ADS-B fallback HTTP ${adsbHttpStatus}. No usable live aircraft coordinates were returned.`
     });
   } catch (error) {
     return res.status(502).json({ error: "Could not contact FlightNerve. Try again shortly." });
