@@ -28,11 +28,27 @@ if(window.L){
 // Estimated route: first explicitly supplied oceanic waypoint through the supplied coordinates,
 // then approximate terminal waypoints to Narita. This is a simulation, not live aircraft telemetry.
 const route=[
- [41.6708,-155.63348], // latest user-supplied FlightRadar24 position snapshot
- // Approximate points tracing the dotted westbound-to-Japan track shown in the screenshot
- [42.0,-160.0],[40.0,-170.0],[37.0,-180.0],
- [35,-170],[34,-160],[35,-150],[35.2,-146],[35.4,-143],
- [35.6,-141.5],[35.772,140.3929]
+ [41.6708,-155.63348], // supplied starting position
+ // Schematic eastbound route across the North Pacific toward Narita
+ [42.0,-150.0],
+ [42.0,-145.0],
+ [41.8,-140.0],
+ [41.5,-135.0],
+ [41.2,-130.0],
+ [40.8,-125.0],
+ [40.4,-120.0],
+ [39.9,-115.0],
+ [39.4,-110.0],
+ [38.9,-105.0],
+ [38.4,-100.0],
+ [37.9,-95.0],
+ [37.4,-90.0],
+ [36.9,-85.0],
+ [36.4,-80.0],
+ [35.9,-75.0],
+ [35.7,-70.0],
+ [35.6,-65.0],
+ [35.772,140.3929]
 ];
 const R=3440.065, SPEED_KT=448, INITIAL_TRACK_DEG=277, ALTITUDE_FT=32000;
 const TERMINAL_NM=12;
