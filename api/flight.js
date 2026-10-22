@@ -80,7 +80,7 @@ export default async function handler(req, res) {
     let monitoredHttpStatus = null;
     let monitoredFlightFound = null;
     let monitoredPositionPresent = null;
-    if (!position) {
+    if (!position && !scheduleError) {
       const monitoredResponse = await fetch("https://api.flightnerve.com/monitored/" + encodeURIComponent(apiKey), {
         headers: { Accept: "application/json" }
       });
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     let watchLongitudePresent = null;
     let watchPositionStale = null;
     let watchPhase = null;
-    if (!position) {
+    if (!position && !scheduleError) {
       const watchResponse = await fetch("https://api.flightnerve.com/watch/" + encodeURIComponent(apiKey), {
         headers: { Accept: "application/json" }
       });
@@ -171,12 +171,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // Last live-data fallback: query the public ADS-B feed by ANA's likely
-    // radio callsign. Accept only fresh, valid coordinates; never infer a live fix.
+    // Last live-data fallback: query the public adsb.fi feed by ANA's likely
+    // radio callsign. This is attempted even when FlightNerve is rate-limited.
+    // Accept only fresh, valid coordinates; never infer a live fix.
     let adsbHttpStatus = null;
     if (!position) {
       try {
-        const adsbResponse = await fetch("https://api.adsb.lol/v2/callsign/ANA7", {
+        const adsbResponse = await fetch("https://opendata.adsb.fi/api/v2/callsign/ANA7", {
           headers: { Accept: "application/json" }
         });
         adsbHttpStatus = adsbResponse.status;
