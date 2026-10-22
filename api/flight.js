@@ -74,6 +74,10 @@ export default async function handler(req, res) {
     let watchFlightKeys = [];
     let watchLiveKeys = [];
     let watchPositionKeys = [];
+    let watchLatitudePresent = null;
+    let watchLongitudePresent = null;
+    let watchPositionStale = null;
+    let watchPhase = null;
     if (!position) {
       const watchResponse = await fetch("https://api.flightnerve.com/watch/" + encodeURIComponent(apiKey), {
         headers: { Accept: "application/json" }
@@ -100,7 +104,11 @@ export default async function handler(req, res) {
         if (p && typeof p === "object") watchPositionKeys = Object.keys(p).slice(0, 30);
         const lat = p?.latitude ?? p?.lat;
         const lon = p?.longitude ?? p?.lon;
-        if (lat != null && lon != null &&
+        watchLatitudePresent = lat != null && lat !== "";
+        watchLongitudePresent = lon != null && lon !== "";
+        watchPositionStale = p?.pos_stale ?? null;
+        watchPhase = p?.phase ?? null;
+        if (lat != null && lat !== "" && lon != null && lon !== "" &&
             Number.isFinite(Number(lat)) && Number.isFinite(Number(lon)) &&
             Number(lat) >= -90 && Number(lat) <= 90 &&
             Number(lon) >= -180 && Number(lon) <= 180) {
@@ -145,6 +153,10 @@ export default async function handler(req, res) {
       watchFlightKeys,
       watchLiveKeys,
       watchPositionKeys,
+      watchLatitudePresent,
+      watchLongitudePresent,
+      watchPositionStale,
+      watchPhase,
       message: position
         ? `Position source: ${position.source || "provider"}; last update ${position.updatedAgo || "time unavailable"}.`
         : `Flight schedule/status loaded; /track HTTP ${trackingHttpStatus}, response: ${trackingResponseType}; /watch HTTP ${watchHttpStatus}. No usable aircraft coordinates were returned.`
