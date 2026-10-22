@@ -24,10 +24,10 @@ GitHub Pages hosts static HTML/CSS/JS only; it cannot run `api/flight.js` as a b
 ## The story behind NH7 Flight Watch
 
 More than a flight home
-This website was made for the students and friends from Toyokawa, Japan, who took part in the Cupertino–Toyokawa Sister Cities exchange. During the exchange, we got to share our everyday lives, learn about each other’s cultures, and build friendships that reach across the Pacific.
+This website was made for the students and friends from Toyokawa, Japan, who took part in the Cupertino Toyokawa Sister Cities exchange. During the exchange, we got to share our everyday lives, learn about each other’s cultures, and build friendships that reach across the Pacific.
 
-When it was time for the Toyokawa delegation to head home, I wanted to make something that would help us follow their journey from San Francisco to Tokyo—and give everyone one more way to show how much we’ll miss them. NH7 Flight Watch is my small way of turning a flight number into a reminder of the people, memories, and connections behind it.
+When it was time for the Toyokawa delegation to head home, I wanted to make something that would help us follow their journey from San Francisco to Tokyo and give everyone one more way to show how much we’ll miss them. NH7 Flight Watch is my small way of turning a flight number into a reminder of the people, memories, and connections behind it.
 
 ## That is what the exchange is about to me: not just visiting another country, but discovering how people from different places can become part of one another’s lives. The trip ends, but the friendship doesn’t. ❤️
 
-This is implementation-ready scaffolding, not a verified live connection. It will show "Backend is not configured yet" until the API key is set on the backend. No API key is included in these files.
+This is implementation ready scaffolding, not a verified live connection. It will show "Backend is not configured yet" until the API key is set on the backend. No API key is included in these files.
