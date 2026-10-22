@@ -35,9 +35,26 @@ async function refresh(){
   departureEl.textContent=data.estimatedDepartureLocal||data.departureLocal||fmtDate(data.estimatedDeparture||data.scheduledDeparture);
   etaEl.textContent=data.estimatedArrivalLocal||data.arrivalLocal||fmtDate(data.estimatedArrival||data.scheduledArrival);
   if(data.latitude!=null&&data.longitude!=null){
-    positionEl.textContent=Number(data.latitude).toFixed(2)+', '+Number(data.longitude).toFixed(2);
-    if(map){const p=[Number(data.latitude),Number(data.longitude)];if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7');else marker.setLatLng(p);map.setView(p,5);}
-  } else positionEl.textContent='No current position';
+    positionEl.textContent=Number(data.latitude).toFixed(2)+', '+Number(data.longitude).toFixed(2)+' · live';
+    if(map){const p=[Number(data.latitude),Number(data.longitude)];if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7 · provider position');else marker.setLatLng(p).setPopupContent('ANA NH7 · provider position');map.setView(p,5);}
+  } else {
+    // Last-resort visual estimate from schedule only. Never present this as live telemetry.
+    const dep=data.scheduledDeparture?new Date(data.scheduledDeparture).getTime():NaN;
+    const arr=data.scheduledArrival?new Date(data.scheduledArrival).getTime():NaN;
+    const nowMs=Date.now();
+    if(Number.isFinite(dep)&&Number.isFinite(arr)&&arr>dep&&nowMs>=dep&&nowMs<=arr){
+      const t=(nowMs-dep)/(arr-dep), start=[37.6213,-122.3790], end=[35.7720,140.3929];
+      let deltaLon=end[1]-start[1]; if(deltaLon>180)deltaLon-=360; if(deltaLon< -180)deltaLon+=360;
+      let lon=((start[1]+deltaLon*t+540)%360)-180;
+      const p=[start[0]+(end[0]-start[0])*t,lon];
+      positionEl.textContent=p[0].toFixed(2)+', '+p[1].toFixed(2)+' · schedule estimate';
+      if(map){if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7 · schedule-based estimate, not live tracking');else marker.setLatLng(p).setPopupContent('ANA NH7 · schedule-based estimate, not live tracking');map.setView(p,4);}
+      messageEl.textContent='No live coordinates were supplied by the tracking provider. The map marker is an approximate position interpolated between SFO and NRT using scheduled times; it is not live aircraft data.';
+    } else {
+      positionEl.textContent='No current position';
+      if(marker&&map){map.removeLayer(marker);marker=null;}
+    }
+  }
   const alt=data.altitudeFeet!=null?Math.round(data.altitudeFeet).toLocaleString()+' ft':'—';
   const speed=data.groundspeedKnots!=null?Math.round(data.groundspeedKnots)+' kt':'—';
   altSpeedEl.textContent=alt+' / '+speed;
