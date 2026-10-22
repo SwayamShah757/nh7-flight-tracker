@@ -7,7 +7,8 @@
 <section class="panel">
 <div class="statusline"><span class="pill" id="status">Connecting to flight data…</span><span class="pill" id="updated">Not updated yet</span></div>
 <div class="grid">
-<div class="stat"><div class="label">Estimated arrival</div><div class="value" id="eta">—</div></div>
+<div class="stat"><div class="label">Departure (SFO local)</div><div class="value" id="departure">—</div></div>
+<div class="stat"><div class="label">Estimated arrival (Tokyo local)</div><div class="value" id="eta">—</div></div>
 <div class="stat"><div class="label">Aircraft position</div><div class="value" id="position">Waiting for data</div></div>
 <div class="stat"><div class="label">Altitude / speed</div><div class="value" id="altSpeed">—</div></div>
 </div>
@@ -18,7 +19,7 @@
 </section><p class="foot">Made to keep an eye on NH7 — even from far away. ✦</p></main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-const dateInput=document.querySelector('#flightDate'), statusEl=document.querySelector('#status'), updatedEl=document.querySelector('#updated'), etaEl=document.querySelector('#eta'), positionEl=document.querySelector('#position'), altSpeedEl=document.querySelector('#altSpeed'), messageEl=document.querySelector('#message'), mapEl=document.querySelector('#map');
+const dateInput=document.querySelector('#flightDate'), statusEl=document.querySelector('#status'), updatedEl=document.querySelector('#updated'), etaEl=document.querySelector('#eta'), departureEl=document.querySelector('#departure'), positionEl=document.querySelector('#position'), altSpeedEl=document.querySelector('#altSpeed'), messageEl=document.querySelector('#message'), mapEl=document.querySelector('#map');
 const qs=new URLSearchParams(location.search), now=new Date(), today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
 dateInput.value=qs.get('date')||today;
 let map=null, marker=null, trackLine=null;
@@ -28,10 +29,11 @@ async function refresh(){
  const date=dateInput.value; if(!date)return;
  statusEl.textContent='Updating…';messageEl.textContent='Requesting the latest available data…';
  try{
-  const r=await fetch('./api/flight?flight=NH7&date='+encodeURIComponent(date),{cache:'no-store'});
+  const r=await fetch('https://nh7-flight-tracker.vercel.app/api/flight?flight=NH7&date='+encodeURIComponent(date),{cache:'no-store'});
   const data=await r.json();if(!r.ok)throw new Error(data.error||'API request failed ('+r.status+')');
   statusEl.textContent=data.status||'Flight data received';
-  etaEl.textContent=fmtDate(data.estimatedArrival||data.scheduledArrival);
+  departureEl.textContent=data.estimatedDepartureLocal||data.departureLocal||fmtDate(data.estimatedDeparture||data.scheduledDeparture);
+  etaEl.textContent=data.estimatedArrivalLocal||data.arrivalLocal||fmtDate(data.estimatedArrival||data.scheduledArrival);
   if(data.latitude!=null&&data.longitude!=null){
     positionEl.textContent=Number(data.latitude).toFixed(2)+', '+Number(data.longitude).toFixed(2);
     if(map){const p=[Number(data.latitude),Number(data.longitude)];if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7');else marker.setLatLng(p);map.setView(p,5);}
@@ -41,7 +43,7 @@ async function refresh(){
   altSpeedEl.textContent=alt+' / '+speed;
   updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
   messageEl.textContent=data.message||'Refreshes automatically every 60 seconds while this page is open. Position availability depends on provider coverage and flight status.';
- }catch(e){statusEl.textContent='Data unavailable';updatedEl.textContent='Checked '+new Date().toLocaleTimeString();messageEl.textContent=e.message+'. Configure AEROAPI_KEY on the backend and deploy the API function. External tracking links above remain available.';messageEl.classList.add('error');}
+ }catch(e){statusEl.textContent='Data unavailable';updatedEl.textContent='Checked '+new Date().toLocaleTimeString();messageEl.textContent=e.message+'. Check that FLIGHTNERVE_API_KEY is configured in Vercel and the latest deployment is Ready. External tracking links above remain available.';messageEl.classList.add('error');}
 }
 document.querySelector('#refresh').addEventListener('click',refresh);
 dateInput.addEventListener('change',()=>{history.replaceState(null,'','?date='+encodeURIComponent(dateInput.value));refresh()});
