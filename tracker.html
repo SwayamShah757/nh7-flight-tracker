@@ -25,30 +25,18 @@ if(window.L){
   map=L.map('map').setView([39,-165],3);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:8,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 }
-// Estimated route: first explicitly supplied oceanic waypoint through the supplied coordinates,
-// then approximate terminal waypoints to Narita. This is a simulation, not live aircraft telemetry.
+// Schematic westbound route across the North Pacific toward Narita.
+// This is an estimate, not live aircraft telemetry. Longitudes wrap at the International Date Line.
 const route=[
  [41.6708,-155.63348], // supplied starting position
- // Schematic eastbound route across the North Pacific toward Narita
- [42.0,-150.0],
- [42.0,-145.0],
- [41.8,-140.0],
- [41.5,-135.0],
- [41.2,-130.0],
- [40.8,-125.0],
- [40.4,-120.0],
- [39.9,-115.0],
- [39.4,-110.0],
- [38.9,-105.0],
- [38.4,-100.0],
- [37.9,-95.0],
- [37.4,-90.0],
- [36.9,-85.0],
- [36.4,-80.0],
- [35.9,-75.0],
- [35.7,-70.0],
- [35.6,-65.0],
- [35.772,140.3929]
+ [41.5,-162.0],
+ [41.0,-169.0],
+ [40.0,-176.0],
+ [38.0,178.0],
+ [36.5,170.0],
+ [35.0,162.0],
+ [34.5,154.0],
+ [35.772,140.3929] // Tokyo Narita (NRT)
 ];
 const R=3440.065, SPEED_KT=448, INITIAL_TRACK_DEG=277, ALTITUDE_FT=32000;
 const TERMINAL_NM=12;
@@ -102,10 +90,24 @@ function updateEstimate(){
  updatedEl.textContent='Updated '+new Date().toLocaleTimeString();
  messageEl.textContent='Estimated route progress only — not live aircraft data. Assumes 448 kt ground speed along the listed route legs; 277° is the supplied initial track reference and is not treated as a constant heading through every turn. The simulation starts at the latest supplied snapshot 41.6708°N, 155.63348°W. Initial snapshot track was 277°; the route model follows the supplied waypoints at an assumed constant 448 kt. Terminal waypoints after the supplied oceanic points are approximate.';
  if(map){
-  // Draw the blue line from the moving aircraft dot directly to Narita (NRT).
-  const destination=[35.772,140.3929];
-  if(!routeLine)routeLine=L.polyline([p,destination],{color:'#64b5f6',weight:3,dashArray:'7 7',noClip:true}).addTo(map);
-  else routeLine.setLatLngs([p,destination]);
+  // Draw the blue route from the moving dot westbound across the Pacific to NRT.
+  // Split at the International Date Line so Leaflet doesn't draw a line across the whole map.
+  const remainingRoute=[p,...route.slice((legs.findIndex(x=>x===leg))+1)];
+  const segments=[]; let segment=[remainingRoute[0]];
+  for(let i=1;i<remainingRoute.length;i++){
+    const prev=remainingRoute[i-1], next=remainingRoute[i];
+    if(Math.abs(next[1]-prev[1])>180){
+      const boundary=prev[1]<0?-180:180;
+      const wrapped=next[1]+(next[1]>0?-360:360);
+      const fraction=(boundary-prev[1])/(wrapped-prev[1]);
+      const lat=prev[0]+(next[0]-prev[0])*fraction;
+      segment.push([lat,boundary]); segments.push(segment);
+      segment=[[lat,-boundary],next];
+    } else segment.push(next);
+  }
+  segments.push(segment);
+  if(!routeLine)routeLine=L.polyline(segments,{color:'#64b5f6',weight:3,dashArray:'7 7'}).addTo(map);
+  else routeLine.setLatLngs(segments);
   if(!marker)marker=L.marker(p).addTo(map).bindPopup('ANA NH7 · route-based estimate, not live');
   else marker.setLatLng(p);
   map.setView(p,4);
