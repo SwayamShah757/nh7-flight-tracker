@@ -23,16 +23,32 @@
 .note{margin-top:18px;color:var(--muted);font-size:.88rem;line-height:1.6}
 @media(max-width:560px){.info-grid{grid-template-columns:1fr}.route{gap:9px}}
 
-/* Landed confirmation transition */
-.landed-overlay{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#16a34a;color:#fff;opacity:0;visibility:hidden;pointer-events:none;transform:scale(1.04);transition:opacity .55s ease,transform .65s ease,visibility .55s; text-align:center;padding:24px;box-sizing:border-box}
-.landed-overlay.show{opacity:1;visibility:visible;transform:scale(1);pointer-events:auto}
-.landed-check{width:clamp(88px,18vw,140px);height:clamp(88px,18vw,140px);border:5px solid #fff;border-radius:50%;display:grid;place-items:center;font-size:clamp(3.5rem,10vw,5.5rem);font-weight:800;line-height:1;animation:landed-pop .65s cubic-bezier(.2,.8,.2,1) both}
-.landed-title{font-size:clamp(2.5rem,8vw,5rem);font-weight:900;letter-spacing:.04em;margin:0}
-.landed-subtitle{font-size:clamp(1rem,3vw,1.35rem);margin:0;max-width:34rem;line-height:1.6}
-.landed-dismiss{margin-top:10px;border:1px solid #ffffffa8;background:#ffffff20;color:#fff;padding:12px 20px;border-radius:999px;font:inherit;font-weight:700;cursor:pointer}
-@keyframes landed-pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.12);opacity:1}100%{transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.landed-overlay,.landed-check{transition:none;animation:none}}
-
+/* Full-page landed celebration theme */
+body{min-height:100vh;background:radial-gradient(ellipse at 50% -10%,#bbf7d0 0%,transparent 48%),linear-gradient(145deg,#052e16 0%,#166534 42%,#15803d 72%,#064e3b 100%)!important;color:#f0fdf4}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;background-image:radial-gradient(#dcfce7 1px,transparent 1px);background-size:28px 28px}
+main{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:28px 20px 56px}
+.back{color:#dcfce7!important}
+.eyebrow{color:#bbf7d0!important}
+h1{color:#fff!important;font-size:clamp(2.8rem,8vw,5.5rem)!important;letter-spacing:-.045em;line-height:1;margin:16px 0}
+.lead{color:#dcfce7!important;font-size:1.08rem;line-height:1.7;max-width:650px}
+.status-card{margin-top:28px;background:linear-gradient(145deg,#ffffffed,#dcfce7ed)!important;border:1px solid #bbf7d0!important;border-radius:28px;padding:clamp(20px,5vw,36px);box-shadow:0 28px 80px #022c2280!important;color:#14532d}
+.airline,.airport-name,.info .label,.info .sub,.note{color:#166534!important}
+.flight-number,.flight-arrow{color:#15803d!important}
+.airport-code{color:#14532d}
+.info{background:#f0fdf4!important;border:1px solid #bbf7d0!important;border-radius:16px}
+.info .value{color:#14532d}
+.pill{background:#15803d!important;color:#fff!important;border:1px solid #86efac!important;font-weight:800;letter-spacing:.08em}
+.note{border-top:1px solid #bbf7d0;padding-top:16px}
+.actions a,.actions button,.primary{border-color:#15803d!important}
+.actions a{color:#166534!important}
+.actions .primary,.primary{background:#15803d!important;color:#fff!important}
+.foot{color:#dcfce7!important}
+.farewell{background:linear-gradient(145deg,#14532dcc,#052e16e8)!important;border-color:#86efac88!important}
+.farewell .tiny,.farewell .sparkle{color:#bbf7d0!important}
+.farewell p{color:#ecfdf5!important}
+@media(max-width:560px){main{padding:22px 14px 42px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+ 
 /* Hidden farewell surprise */
 .farewell{margin:100px auto 30px;max-width:680px;padding:34px 22px;text-align:center;border:1px solid #f472b655;border-radius:26px;background:radial-gradient(ellipse at top,#f472b622,transparent 70%),#111e31cc;box-shadow:0 18px 55px #0003;position:relative;overflow:hidden}
 .farewell .tiny{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:#f9a8d4}
@@ -45,17 +61,11 @@
 </style>
 </head>
 <body>
-<div class="landed-overlay" id="landed-overlay" role="status" aria-live="polite" aria-hidden="true">
-  <div class="landed-check" aria-hidden="true">✓</div>
-  <h2 class="landed-title">LANDED</h2>
-  <p class="landed-subtitle">Welcome to Tokyo, NH7. Safe travels, lasting memories, and friendships that cross the Pacific. ❤️</p>
-  <button class="landed-dismiss" id="landed-dismiss" type="button">View flight details</button>
-</div>
 <main>
 <a class="back" href="index.html">← Home</a>
 <p class="eyebrow">All Nippon Airways · Flight status</p>
-<h1>NH7 Status</h1>
-<p class="lead">A simple status board for ANA flight NH7 from San Francisco to Tokyo Narita.</p>
+<h1>They Landed. 💚</h1>
+<p class="lead">After crossing the Pacific, the Toyokawa delegation has arrived in Japan. Welcome home, NH7 — the journey is complete, but the friendships continue. ✈️🇯🇵</p>
 <section class="status-card" aria-label="NH7 flight status">
 <div class="flight-heading">
 <div><p class="airline">All Nippon Airways (ANA)</p><div class="flight-number">NH7 · ANA7</div></div>
@@ -96,19 +106,6 @@
 
 </main>
 <script>
-const landedOverlay=document.querySelector('#landed-overlay');
-const landedDismiss=document.querySelector('#landed-dismiss');
-function showLandedTransition(){
-  landedOverlay.classList.add('show');
-  landedOverlay.setAttribute('aria-hidden','false');
-}
-landedDismiss.addEventListener('click',()=>{
-  landedOverlay.classList.remove('show');
-  landedOverlay.setAttribute('aria-hidden','true');
-});
-if(document.querySelector('#status-pill')?.textContent.trim().toLowerCase()==='landed'){
-  window.addEventListener('load',()=>window.setTimeout(showLandedTransition,250));
-}
 const checked=document.querySelector('#last-checked');
 document.querySelector('#refresh').addEventListener('click',()=>{
   checked.textContent='Refresh requested at '+new Date().toLocaleString()+'. For current departure, arrival, and gate details, open Google flight status or one of the live tracking links above.';
